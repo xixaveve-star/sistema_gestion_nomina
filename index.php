@@ -78,7 +78,6 @@ $filas = $pdo->query("SELECT * FROM empleados ORDER BY id")->fetchAll(PDO::FETCH
 // ---------- Reconstruir los objetos reales a partir de las filas ----------
 $nomina = new Nomina();
 $idsRegistro = [];
-$encargadosConEquipo = [];
 
 foreach ($filas as $fila) {
     switch ($fila['tipo']) {
@@ -90,7 +89,6 @@ foreach ($filas as $fila) {
             break;
         case 'encargado':
             $empleado = new Encargado($fila['nombre'], $fila['codigo'], $fila['fecha_contratacion'], (float) $fila['salario_mensual'], (float) $fila['bono_anual'], (float) $fila['bono_liderazgo']);
-            $encargadosConEquipo[] = $empleado;
             break;
         default:
             continue 2;
@@ -101,6 +99,25 @@ foreach ($filas as $fila) {
 
 $empleadosLista = $nomina->getEmpleados();
 $total = $nomina->calcularTotalNomina();
+
+// ---------- Evaluar desempeño de un empleado ----------
+// Se procesa aquí (después de reconstruir los objetos) porque no modifica
+// la base de datos, solo necesita el objeto ya armado para llamar su método.
+$mensajeEvaluacion = '';
+$empleadoEvaluado = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'evaluar') {
+    $idRegistro = (int) $_POST['idRegistro'];
+    foreach ($idsRegistro as $indice => $id) {
+        if ($id === $idRegistro) {
+            $empleado = $empleadosLista[$indice];
+            if ($empleado instanceof Evaluable) {
+                $mensajeEvaluacion = $empleado->evaluarDesempeño();
+                $empleadoEvaluado = $empleado->getNombre();
+            }
+            break;
+        }
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -119,14 +136,18 @@ $total = $nomina->calcularTotalNomina();
         .campos-extra.activo { display: block; }
         button { margin-top: 16px; padding: 10px 18px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
         button:hover { background: #2980b9; }
-        button.eliminar { background: #e74c3c; padding: 4px 10px; font-size: 12px; }
+        button.eliminar { background: #e74c3c; padding: 4px 10px; font-size: 12px; margin-top: 0; }
         button.eliminar:hover { background: #c0392b; }
+        button.evaluar { background: #16a085; padding: 4px 10px; font-size: 12px; margin-top: 0; margin-right: 4px; }
+        button.evaluar:hover { background: #12876f; }
         button.vaciar { background: #7f8c8d; }
         button.vaciar:hover { background: #636e72; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; font-size: 14px; }
+        .acciones { white-space: nowrap; }
         .total { text-align: right; font-size: 18px; font-weight: bold; margin-top: 10px; color: #27ae60; }
         .error { background: #fdecea; color: #c0392b; padding: 10px; border-radius: 4px; margin-bottom: 15px; }
+        .evaluacion { background: #eafaf1; color: #16a085; padding: 10px; border-radius: 4px; margin-bottom: 15px; border-left: 4px solid #16a085; }
         .tipo-tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; color: white; }
         .tag-tiempoCompleto { background: #3498db; }
         .tag-porHoras { background: #f39c12; }
@@ -139,6 +160,13 @@ $total = $nomina->calcularTotalNomina();
 
     <?php if ($error): ?>
         <div class="error">⚠ <?= htmlspecialchars($error) ?></div>
+    <?php endif; ?>
+
+    <?php if ($mensajeEvaluacion): ?>
+        <div class="evaluacion">
+            <strong>Evaluación de <?= htmlspecialchars($empleadoEvaluado) ?>:</strong>
+            <?= htmlspecialchars($mensajeEvaluacion) ?>
+        </div>
     <?php endif; ?>
 
     <div class="tarjeta">
@@ -195,7 +223,7 @@ $total = $nomina->calcularTotalNomina();
             <table>
                 <thead>
                     <tr>
-                        <th>ID</th><th>Nombre</th><th>Tipo</th><th>Salario calculado</th><th></th>
+                        <th>ID</th><th>Nombre</th><th>Tipo</th><th>Salario calculado</th><th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -206,8 +234,15 @@ $total = $nomina->calcularTotalNomina();
                             <td><?= htmlspecialchars($empleado->getNombre()) ?></td>
                             <td><span class="tipo-tag tag-<?= $fila['tipo'] ?>"><?= $fila['tipo'] ?></span></td>
                             <td>$<?= number_format($empleado->calcularSalario(), 2) ?></td>
-                            <td>
-                                <form method="POST" style="margin:0;">
+                            <td class="acciones">
+                                <?php if ($empleado instanceof Evaluable): ?>
+                                    <form method="POST" style="display:inline;">
+                                        <input type="hidden" name="accion" value="evaluar">
+                                        <input type="hidden" name="idRegistro" value="<?= $idsRegistro[$indice] ?>">
+                                        <button type="submit" class="evaluar">Evaluar</button>
+                                    </form>
+                                <?php endif; ?>
+                                <form method="POST" style="display:inline;">
                                     <input type="hidden" name="accion" value="eliminar">
                                     <input type="hidden" name="idRegistro" value="<?= $idsRegistro[$indice] ?>">
                                     <button type="submit" class="eliminar">Eliminar</button>
