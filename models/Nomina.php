@@ -2,7 +2,7 @@
 
 require_once __DIR__ . '/Empleado.php';
 
-//-- Clase Nomina: administra a todos los empleados --
+// ---------- Clase Nomina: administra a todos los empleados ----------
 class Nomina {
     private array $empleados = []; // array de objetos Empleado (mezclados)
 
