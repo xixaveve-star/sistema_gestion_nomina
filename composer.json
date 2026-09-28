@@ -1,0 +1,9 @@
+{
+    "name": "escuela/sistema-gestion-nomina",
+    "description": "Sistema de Gestion de Nomina - POO en PHP con MVC",
+    "require": {
+        "php": ">=8.0",
+        "dompdf/dompdf": "^2.0",
+        "phpoffice/phpspreadsheet": "^1.29"
+    }
+}

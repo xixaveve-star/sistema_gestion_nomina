@@ -30,6 +30,11 @@
         button.evaluar:hover { background: #12876f; }
         button.vaciar { background: #7f8c8d; }
         button.vaciar:hover { background: #636e72; }
+        .exportar { display: inline-block; text-decoration: none; padding: 10px 18px; border-radius: 4px; color: white; font-size: 14px; margin-right: 8px; }
+        .exportar.pdf { background: #c0392b; }
+        .exportar.pdf:hover { background: #992d22; }
+        .exportar.excel { background: #1e7145; }
+        .exportar.excel:hover { background: #17603a; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { text-align: left; padding: 8px; border-bottom: 1px solid #eee; font-size: 14px; }
         .acciones { white-space: nowrap; }
@@ -104,6 +109,13 @@
 
     <div class="tarjeta">
         <h2>Reporte de nómina</h2>
+
+        <?php if (!empty($empleadosLista)): ?>
+            <div style="margin-bottom: 16px;">
+                <a href="exportar_pdf.php" class="exportar pdf" target="_blank">Exportar a PDF</a>
+                <a href="exportar_excel.php" class="exportar excel">Exportar a Excel</a>
+            </div>
+        <?php endif; ?>
 
         <?php if (empty($empleadosLista)): ?>
             <p>Aún no hay empleados registrados.</p>
